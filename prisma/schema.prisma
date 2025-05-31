@@ -1,0 +1,145 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Card {
+  id                    String   @id // Scryfall UUID
+  oracleId              String?  // Oracle ID for grouping card versions
+  mtgoId                Int?     // MTGO ID
+  tcgplayerId           Int?     // TCGPlayer ID
+  cardmarketId          Int?     // Cardmarket ID
+  
+  // Basic card info
+  name                  String
+  printedName           String?  // For non-English cards
+  lang                  String   @default("en")
+  layout                String   // normal, split, flip, transform, etc.
+  
+  // Mana and cost info
+  manaCost              String?  // Original mana cost string like "{2}{U}{R}"
+  cmc                   Float    @default(0) // Converted mana cost
+  typeLine              String   // Full type line
+  oracleText            String?  // Rules text
+  printedText           String?  // Printed text (for reprints with different text)
+  flavorText            String?
+  
+  // Power/Toughness/Loyalty
+  power                 String?  // String to handle "*" and "+1" cases
+  toughness             String?
+  loyalty               String?
+  
+  // Set information
+  setCode               String   // Three-letter set code
+  setName               String
+  setId                 String   // Scryfall set ID
+  collectorNumber       String   // Collector number within the set
+  rarity                String   // common, uncommon, rare, mythic, special, bonus
+  
+  // Visual information
+  imageUris             String?  // JSON string of image URIs
+  cardFaces             String?  // JSON string for double-faced cards
+  colors                String?  // JSON array of colors ["W","U","B","R","G"]
+  colorIdentity         String?  // JSON array of color identity
+  colorIndicator        String?  // JSON array for cards with color indicator
+  
+  // Legality and tournament info
+  legalities            String?  // JSON object of format legalities
+  reserved              Boolean  @default(false)
+  foil                  Boolean  @default(false)
+  nonfoil               Boolean  @default(true)
+  oversized             Boolean  @default(false)
+  promo                 Boolean  @default(false)
+  reprint               Boolean  @default(false)
+  variation             Boolean  @default(false)
+  
+  // Frame and style
+  frame                 String?  // 1993, 1997, 2003, 2015, future
+  frameEffects          String?  // JSON array of frame effects
+  borderColor           String?  // black, white, borderless, silver, gold
+  
+  // Pricing (can be updated separately)
+  prices                String?  // JSON object of prices from different sources
+  
+  // Additional identifiers
+  arenaId               Int?     // Arena ID
+  scryfallUri           String?  // Scryfall page URL
+  uri                   String?  // Scryfall API URI
+  
+  // Keywords and abilities
+  keywords              String?  // JSON array of keywords
+  producedMana          String?  // JSON array of mana colors this card can produce
+  
+  // Watermark and artist info
+  watermark             String?
+  artist                String?
+  artistId              String?
+  illustrationId        String?
+  
+  // Special properties
+  handModifier          String?  // For Vanguard cards
+  lifeModifier          String?  // For Vanguard cards
+  
+  // Timestamps
+  releasedAt            DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  // Indexes for common queries
+  @@index([name])
+  @@index([setCode])
+  @@index([oracleId])
+  @@index([typeLine])
+  @@index([colors])
+  @@index([cmc])
+  @@index([rarity])
+  @@index([createdAt])
+}
+
+model Set {
+  id                String   @id // Scryfall set ID
+  code              String   @unique // Three-letter set code
+  mtgoCode          String?  // MTGO set code
+  tcgplayerId       Int?     // TCGPlayer set ID
+  name              String
+  uri               String?  // Scryfall API URI
+  scryfallUri       String?  // Scryfall page URL
+  searchUri         String?  // Scryfall search URI
+  releasedAt        DateTime?
+  setType           String   // expansion, core, masters, etc.
+  cardCount         Int      @default(0)
+  digital           Boolean  @default(false)
+  foilOnly          Boolean  @default(false)
+  nonfoilOnly       Boolean  @default(false)
+  iconSvgUri        String?  // Set icon SVG
+  
+  // Timestamps
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([code])
+  @@index([releasedAt])
+  @@index([setType])
+}
+
+model Ruling {
+  id          String   @id @default(cuid())
+  oracleId    String   // Links to Card.oracleId
+  source      String   // "wotc" typically
+  publishedAt DateTime
+  comment     String   // The ruling text
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([oracleId])
+  @@index([publishedAt])
+}

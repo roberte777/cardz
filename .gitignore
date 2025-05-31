@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/src/generated/prisma
+
+# bulk data files (large cached files from Scryfall)
+/data/
+prisma/dev.db
+prisma/dev.db-journal
