@@ -143,3 +143,15 @@ model Ruling {
   @@index([oracleId])
   @@index([publishedAt])
 }
+
+model SyncStatus {
+  id               Int      @id @default(1) // Always ID 1 - single row table
+  lastCardsSync    DateTime?
+  lastRulingsSync  DateTime?
+  lastSetsSync     DateTime?
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  @@map("sync_status")
+}
