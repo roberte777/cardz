@@ -11,25 +11,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User model to sync with Clerk
-model User {
-  id        String   @id // Clerk user ID
-  email     String   @unique
-  username  String?  @unique
-  firstName String?
-  lastName  String?
-  imageUrl  String?
-  
-  // Deck relationships
-  decks     Deck[]
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  @@index([email])
-  @@index([username])
-}
-
 // Deck model for user's card collections
 model Deck {
   id          String @id @default(cuid())
@@ -38,9 +19,8 @@ model Deck {
   format      String? // Standard, Modern, Commander, etc.
   isPublic    Boolean @default(false)
   
-  // User relationship
+  // Clerk user ID (no relation needed - get user data from Clerk)
   userId      String
-  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   // Cards in this deck
   deckCards   DeckCard[]
