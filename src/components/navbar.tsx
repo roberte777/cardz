@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
 import { Button } from '@/components/ui/button'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 export function Navbar() {
     return (
@@ -36,8 +37,9 @@ export function Navbar() {
                         </SignedOut>
                     </div>
 
-                    {/* Auth buttons */}
+                    {/* Auth buttons and theme toggle */}
                     <div className="flex items-center space-x-4">
+                        <ThemeToggle />
                         <SignedOut>
                             <SignInButton mode="modal">
                                 <Button variant="ghost" size="sm">

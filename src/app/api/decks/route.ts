@@ -86,11 +86,18 @@ export async function GET(request: NextRequest) {
         })
 
         // Calculate deck stats
-        const decksWithStats = decks.map(deck => ({
-            ...deck,
-            cardCount: deck.deckCards.reduce((sum, dc) => sum + dc.quantity, 0),
-            uniqueCards: deck.deckCards.length,
-        }))
+        const decksWithStats = decks.map(deck => {
+            const deckCardsTotal = deck.deckCards.reduce((sum, dc) => sum + dc.quantity, 0)
+            const cardCount = deck.format === 'Commander' && deck.commander
+                ? deckCardsTotal + 1
+                : deckCardsTotal
+
+            return {
+                ...deck,
+                cardCount,
+                uniqueCards: deck.deckCards.length,
+            }
+        })
 
         return NextResponse.json(decksWithStats)
     } catch (error) {

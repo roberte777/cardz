@@ -16,7 +16,6 @@ interface Deck {
     format: string
     isPublic: boolean
     cardCount: number
-    uniqueCards: number
     createdAt: string
     updatedAt: string
 }
@@ -157,7 +156,6 @@ export default function DecksPage() {
                                     <div className="flex items-center justify-between text-sm text-muted-foreground">
                                         <div className="flex items-center gap-4">
                                             <span>{deck.cardCount} cards</span>
-                                            <span>{deck.uniqueCards} unique</span>
                                         </div>
                                         <div className="flex items-center gap-1">
                                             <Calendar className="w-3 h-3" />

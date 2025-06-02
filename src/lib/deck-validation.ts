@@ -42,8 +42,13 @@ interface Deck {
 
 export function getDeckStats(deck: Deck): DeckStats {
     const issues: ValidationIssue[] = []
-    const totalCards = deck.deckCards.reduce((sum, deckCard) => sum + deckCard.quantity, 0)
+    const deckCardsTotal = deck.deckCards.reduce((sum, deckCard) => sum + deckCard.quantity, 0)
     const uniqueCards = deck.deckCards.length
+
+    // Include commander in total count for Commander format
+    const totalCards = deck.format === 'Commander' && deck.commander
+        ? deckCardsTotal + 1
+        : deckCardsTotal
 
     // Format-specific validation
     if (deck.format === 'Standard') {
@@ -63,13 +68,13 @@ export function getDeckStats(deck: Deck): DeckStats {
 }
 
 function validateStandardDeck(deck: Deck, issues: ValidationIssue[]) {
-    const totalCards = deck.deckCards.reduce((sum, deckCard) => sum + deckCard.quantity, 0)
+    const deckCardsTotal = deck.deckCards.reduce((sum, deckCard) => sum + deckCard.quantity, 0)
 
     // Standard deck must have at least 60 cards
-    if (totalCards < 60) {
+    if (deckCardsTotal < 60) {
         issues.push({
             type: 'error',
-            message: `Standard decks must have at least 60 cards. You have ${totalCards} cards.`,
+            message: `Standard decks must have at least 60 cards. You have ${deckCardsTotal} cards.`,
         })
     }
 
@@ -89,7 +94,8 @@ function validateStandardDeck(deck: Deck, issues: ValidationIssue[]) {
 }
 
 function validateCommanderDeck(deck: Deck, issues: ValidationIssue[]) {
-    const totalCards = deck.deckCards.reduce((sum, deckCard) => sum + deckCard.quantity, 0)
+    const deckCardsTotal = deck.deckCards.reduce((sum, deckCard) => sum + deckCard.quantity, 0)
+    const totalCardsIncludingCommander = deckCardsTotal + (deck.commander ? 1 : 0)
 
     // Commander validation
     if (!deck.commander) {
@@ -109,7 +115,6 @@ function validateCommanderDeck(deck: Deck, issues: ValidationIssue[]) {
     }
 
     // Commander deck must have exactly 100 cards (including commander)
-    const totalCardsIncludingCommander = totalCards + (deck.commander ? 1 : 0)
     if (totalCardsIncludingCommander !== 100) {
         const difference = 100 - totalCardsIncludingCommander
         const message = difference > 0

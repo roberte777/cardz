@@ -245,10 +245,11 @@ export default function DeckEditPage() {
                     <div className="text-right">
                         <div className="text-sm text-muted-foreground">Cards</div>
                         <div className="text-2xl font-bold">{stats.totalCards}</div>
-                    </div>
-                    <div className="text-right">
-                        <div className="text-sm text-muted-foreground">Unique</div>
-                        <div className="text-2xl font-bold">{stats.uniqueCards}</div>
+                        {deck.format === 'Commander' && (
+                            <div className="text-xs text-muted-foreground">
+                                {stats.totalCards - (deck.commander ? 1 : 0)} + {deck.commander ? 1 : 0} commander
+                            </div>
+                        )}
                     </div>
                     <div className="text-right">
                         <div className="text-sm text-muted-foreground">Status</div>
