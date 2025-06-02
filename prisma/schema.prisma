@@ -11,6 +11,70 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// User model to sync with Clerk
+model User {
+  id        String   @id // Clerk user ID
+  email     String   @unique
+  username  String?  @unique
+  firstName String?
+  lastName  String?
+  imageUrl  String?
+  
+  // Deck relationships
+  decks     Deck[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([email])
+  @@index([username])
+}
+
+// Deck model for user's card collections
+model Deck {
+  id          String @id @default(cuid())
+  name        String
+  description String?
+  format      String? // Standard, Modern, Commander, etc.
+  isPublic    Boolean @default(false)
+  
+  // User relationship
+  userId      String
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Cards in this deck
+  deckCards   DeckCard[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([format])
+  @@index([isPublic])
+  @@index([createdAt])
+}
+
+// Junction table for cards in decks with quantities
+model DeckCard {
+  id       String @id @default(cuid())
+  quantity Int    @default(1)
+  
+  // Deck relationship
+  deckId   String
+  deck     Deck   @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  
+  // Card relationship
+  cardId   String
+  card     Card   @relation(fields: [cardId], references: [id])
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([deckId, cardId]) // Prevent duplicate cards in same deck
+  @@index([deckId])
+  @@index([cardId])
+}
+
 model Card {
   id                    String   @id // Scryfall UUID
   oracleId              String?  // Oracle ID for grouping card versions
@@ -87,6 +151,9 @@ model Card {
   // Special properties
   handModifier          String?  // For Vanguard cards
   lifeModifier          String?  // For Vanguard cards
+  
+  // Deck relationships
+  deckCards             DeckCard[]
   
   // Timestamps
   releasedAt            DateTime?
