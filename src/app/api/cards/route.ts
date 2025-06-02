@@ -1,6 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
+// Define the card type for better type safety
+type CardSearchResult = {
+    id: string;
+    oracleId: string | null;
+    name: string;
+    manaCost: string | null;
+    cmc: number;
+    typeLine: string;
+    oracleText: string | null;
+    power: string | null;
+    toughness: string | null;
+    loyalty: string | null;
+    setCode: string;
+    setName: string;
+    collectorNumber: string;
+    rarity: string;
+    imageUris: string | null;
+    cardFaces: string | null;
+    colors: string | null;
+    colorIdentity: string | null;
+    legalities: string | null;
+    prices: string | null;
+    scryfallUri: string | null;
+    artist: string | null;
+    releasedAt: Date | null;
+};
+
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
@@ -17,6 +44,7 @@ export async function GET(request: NextRequest) {
         const cmcOperator = searchParams.get('cmcOp') || 'eq'; // eq, gte, lte, gt, lt
         const format = searchParams.get('format');
         const lang = searchParams.get('lang') || 'en';
+        const groupByOracle = searchParams.get('groupByOracle') !== 'false'; // Default to true
 
         // Pagination
         const page = parseInt(searchParams.get('page') || '1');
@@ -100,56 +128,129 @@ export async function GET(request: NextRequest) {
             };
         }
 
-        // Build orderBy clause
-        const orderBy: any = {};
-        if (sortBy === 'name') {
-            orderBy.name = sortOrder;
-        } else if (sortBy === 'cmc') {
-            orderBy.cmc = sortOrder;
-        } else if (sortBy === 'set') {
-            orderBy.setCode = sortOrder;
-        } else if (sortBy === 'rarity') {
-            orderBy.rarity = sortOrder;
-        } else if (sortBy === 'released') {
-            orderBy.releasedAt = sortOrder;
-        } else {
-            orderBy.createdAt = 'desc';
-        }
+        let cards: CardSearchResult[];
+        let totalCount: number;
 
-        // Execute query with count for pagination
-        const [cards, totalCount] = await Promise.all([
-            prisma.card.findMany({
-                where,
-                orderBy,
-                skip,
-                take: limit,
-                select: {
-                    id: true,
-                    name: true,
-                    manaCost: true,
-                    cmc: true,
-                    typeLine: true,
-                    oracleText: true,
-                    power: true,
-                    toughness: true,
-                    loyalty: true,
-                    setCode: true,
-                    setName: true,
-                    collectorNumber: true,
-                    rarity: true,
-                    imageUris: true,
-                    cardFaces: true,
-                    colors: true,
-                    colorIdentity: true,
-                    legalities: true,
-                    prices: true,
-                    scryfallUri: true,
-                    artist: true,
-                    releasedAt: true,
+        if (groupByOracle && query) {
+            // When grouping by oracle ID, use a more complex query
+            // First, get distinct oracle IDs that match our criteria
+            const distinctOracleIds = await prisma.card.findMany({
+                where: {
+                    ...where,
+                    oracleId: { not: null },
                 },
-            }),
-            prisma.card.count({ where }),
-        ]);
+                select: {
+                    oracleId: true,
+                },
+                distinct: ['oracleId'],
+                take: limit * 3, // Get more to account for filtering
+            });
+
+            // Then get one representative card for each oracle ID
+            const oracleIds = distinctOracleIds.map(card => card.oracleId).filter(Boolean) as string[];
+
+            if (oracleIds.length > 0) {
+                // For each oracle ID, get the most recent/preferred printing
+                const cardPromises = oracleIds.slice(skip, skip + limit).map(async (oracleId) => {
+                    return prisma.card.findFirst({
+                        where: {
+                            oracleId: oracleId,
+                            lang: lang,
+                        },
+                        orderBy: [
+                            { releasedAt: 'desc' }, // Prefer newer sets
+                            { rarity: 'asc' }, // Prefer lower rarity for consistency
+                        ],
+                        select: {
+                            id: true,
+                            oracleId: true,
+                            name: true,
+                            manaCost: true,
+                            cmc: true,
+                            typeLine: true,
+                            oracleText: true,
+                            power: true,
+                            toughness: true,
+                            loyalty: true,
+                            setCode: true,
+                            setName: true,
+                            collectorNumber: true,
+                            rarity: true,
+                            imageUris: true,
+                            cardFaces: true,
+                            colors: true,
+                            colorIdentity: true,
+                            legalities: true,
+                            prices: true,
+                            scryfallUri: true,
+                            artist: true,
+                            releasedAt: true,
+                        },
+                    });
+                });
+
+                const cardResults = await Promise.all(cardPromises);
+                cards = cardResults.filter(Boolean) as CardSearchResult[];
+                totalCount = distinctOracleIds.length;
+            } else {
+                cards = [];
+                totalCount = 0;
+            }
+        } else {
+            // Standard query without grouping
+            const orderBy: any = {};
+            if (sortBy === 'name') {
+                orderBy.name = sortOrder;
+            } else if (sortBy === 'cmc') {
+                orderBy.cmc = sortOrder;
+            } else if (sortBy === 'set') {
+                orderBy.setCode = sortOrder;
+            } else if (sortBy === 'rarity') {
+                orderBy.rarity = sortOrder;
+            } else if (sortBy === 'released') {
+                orderBy.releasedAt = sortOrder;
+            } else {
+                orderBy.createdAt = 'desc';
+            }
+
+            const [cardResults, count] = await Promise.all([
+                prisma.card.findMany({
+                    where,
+                    orderBy,
+                    skip,
+                    take: limit,
+                    select: {
+                        id: true,
+                        oracleId: true,
+                        name: true,
+                        manaCost: true,
+                        cmc: true,
+                        typeLine: true,
+                        oracleText: true,
+                        power: true,
+                        toughness: true,
+                        loyalty: true,
+                        setCode: true,
+                        setName: true,
+                        collectorNumber: true,
+                        rarity: true,
+                        imageUris: true,
+                        cardFaces: true,
+                        colors: true,
+                        colorIdentity: true,
+                        legalities: true,
+                        prices: true,
+                        scryfallUri: true,
+                        artist: true,
+                        releasedAt: true,
+                    },
+                }),
+                prisma.card.count({ where }),
+            ]);
+
+            cards = cardResults;
+            totalCount = count;
+        }
 
         // Parse JSON fields for response
         const processedCards = cards.map(card => ({
