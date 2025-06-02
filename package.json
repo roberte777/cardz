@@ -17,6 +17,7 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
+    "@clerk/nextjs": "^6.20.2",
     "@prisma/client": "^6.8.2",
     "axios": "^1.9.0",
     "class-variance-authority": "^0.7.1",
