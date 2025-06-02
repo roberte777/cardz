@@ -1,18 +1,86 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useUser } from '@clerk/nextjs'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { DeckCreationModal } from '@/components/deck-creation-modal'
+import { Plus, Crown, Calendar, FileText } from 'lucide-react'
+
+interface Deck {
+    id: string
+    name: string
+    description: string | null
+    format: string
+    isPublic: boolean
+    cardCount: number
+    uniqueCards: number
+    createdAt: string
+    updatedAt: string
+}
 
 export default function DecksPage() {
     const { user, isLoaded } = useUser()
+    const [decks, setDecks] = useState<Deck[]>([])
+    const [loading, setLoading] = useState(true)
 
-    if (!isLoaded) {
+    useEffect(() => {
+        if (isLoaded && user) {
+            fetchDecks()
+        }
+    }, [isLoaded, user])
+
+    const fetchDecks = async () => {
+        try {
+            const response = await fetch('/api/decks')
+            if (response.ok) {
+                const data = await response.json()
+                setDecks(data)
+            }
+        } catch (error) {
+            console.error('Error fetching decks:', error)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    if (!isLoaded || loading) {
         return (
             <div className="flex items-center justify-center min-h-[50vh]">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
         )
+    }
+
+    const formatBadge = (format: string) => {
+        switch (format) {
+            case 'Commander':
+                return (
+                    <Badge variant="secondary" className="flex items-center gap-1">
+                        <Crown className="w-3 h-3" />
+                        Commander
+                    </Badge>
+                )
+            case 'Standard':
+                return (
+                    <Badge variant="outline" className="flex items-center gap-1">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                        Standard
+                    </Badge>
+                )
+            default:
+                return <Badge variant="outline">{format}</Badge>
+        }
+    }
+
+    const formatDate = (dateString: string) => {
+        return new Date(dateString).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+        })
     }
 
     return (
@@ -25,40 +93,83 @@ export default function DecksPage() {
                         Manage your Magic deck collection here.
                     </p>
                 </div>
-                <Button className="flex items-center gap-2">
-                    <Plus className="w-4 h-4" />
-                    Create New Deck
-                </Button>
+                <DeckCreationModal />
             </div>
 
-            {/* Empty State */}
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-6">
-                    <svg
-                        className="w-12 h-12 text-muted-foreground"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={1.5}
-                            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                        />
-                    </svg>
+            {decks.length === 0 ? (
+                // Empty State
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-6">
+                        <svg
+                            className="w-12 h-12 text-muted-foreground"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={1.5}
+                                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                            />
+                        </svg>
+                    </div>
+                    <h2 className="text-2xl font-semibold mb-2">No decks yet</h2>
+                    <p className="text-muted-foreground mb-6 max-w-md">
+                        Ready to start building? Create your first deck and begin organizing your Magic collection.
+                    </p>
+                    <DeckCreationModal
+                        trigger={
+                            <Button size="lg" className="flex items-center gap-2">
+                                <Plus className="w-4 h-4" />
+                                Create Your First Deck
+                            </Button>
+                        }
+                    />
                 </div>
-                <h2 className="text-2xl font-semibold mb-2">No decks yet</h2>
-                <p className="text-muted-foreground mb-6 max-w-md">
-                    Ready to start building? Create your first deck and begin organizing your Magic collection.
-                </p>
-                <Button size="lg" className="flex items-center gap-2">
-                    <Plus className="w-4 h-4" />
-                    Create Your First Deck
-                </Button>
-            </div>
-
-            {/* Future: Deck Grid will go here when we have actual decks */}
+            ) : (
+                // Deck Grid
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {decks.map((deck) => (
+                        <Link key={deck.id} href={`/decks/${deck.id}`}>
+                            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                                <CardHeader className="pb-3">
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex-1 min-w-0">
+                                            <CardTitle className="text-lg truncate">{deck.name}</CardTitle>
+                                            <div className="flex items-center gap-2 mt-1">
+                                                {formatBadge(deck.format)}
+                                                {deck.isPublic && (
+                                                    <Badge variant="default" className="text-xs">
+                                                        Public
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {deck.description && (
+                                        <CardDescription className="line-clamp-2">
+                                            {deck.description}
+                                        </CardDescription>
+                                    )}
+                                </CardHeader>
+                                <CardContent className="pt-0">
+                                    <div className="flex items-center justify-between text-sm text-muted-foreground">
+                                        <div className="flex items-center gap-4">
+                                            <span>{deck.cardCount} cards</span>
+                                            <span>{deck.uniqueCards} unique</span>
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <Calendar className="w-3 h-3" />
+                                            {formatDate(deck.updatedAt)}
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </Link>
+                    ))}
+                </div>
+            )}
         </div>
     )
 } 

@@ -22,6 +22,10 @@ model Deck {
   // Clerk user ID (no relation needed - get user data from Clerk)
   userId      String
   
+  // Commander for Commander format decks
+  commanderId String?
+  commander   Card?   @relation(fields: [commanderId], references: [id])
+  
   // Cards in this deck
   deckCards   DeckCard[]
   
@@ -32,6 +36,7 @@ model Deck {
   @@index([format])
   @@index([isPublic])
   @@index([createdAt])
+  @@index([commanderId])
 }
 
 // Junction table for cards in decks with quantities
@@ -134,6 +139,7 @@ model Card {
   
   // Deck relationships
   deckCards             DeckCard[]
+  commanderOf           Deck[]   // Decks where this card is the commander
   
   // Timestamps
   releasedAt            DateTime?
