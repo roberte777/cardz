@@ -34,6 +34,13 @@ export async function POST(
             return NextResponse.json({ error: 'Deck not found' }, { status: 404 })
         }
 
+        // Check if card is already the commander
+        if (deck.commanderId === cardId) {
+            return NextResponse.json({
+                error: 'This card is already your commander. A card cannot be both a commander and a deck card.'
+            }, { status: 400 })
+        }
+
         // Check if card already exists in deck
         const existingDeckCard = await prisma.deckCard.findFirst({
             where: {
